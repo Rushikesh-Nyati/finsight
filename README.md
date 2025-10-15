@@ -117,16 +117,16 @@ cd finsight
 cd finsight_app/backend
 python -m venv venv
 ```
-# Activate virtual environment
-# On Windows:
+## Activate virtual environment
+### On Windows:
 ```venv\Scripts\activate```
-# On macOS/Linux:
+### On macOS/Linux:
 ```source venv/bin/activate```
 
-# Install dependencies
+### Install dependencies
 ```pip install -r requirements.txt```
 
-# Run Flask server
+### Run Flask server
 ```python app.py```
 Backend will start on http://localhost:5000
 3. Frontend Setup
