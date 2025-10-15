@@ -297,4 +297,4 @@ Expense splitting for shared expenses
 
 OCR receipt scanning
 
-<p align="center">Made with ❤️ by <strong>Team TKN</strong></p> ```
+<p align="center">Made with ❤️ by <strong>Team TKN</strong></p> 
