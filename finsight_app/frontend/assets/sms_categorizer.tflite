@@ -1,0 +1,17 @@
+# Placeholder TensorFlow Lite model file
+# In a real implementation, this would be a trained .tflite model
+# For development purposes, this is just a placeholder
+
+# This file represents the sms_categorizer.tflite model that would be:
+# 1. Trained on SMS transaction data
+# 2. Optimized for mobile inference
+# 3. Capable of categorizing financial transactions
+
+# The model would typically:
+# - Take merchant names and transaction descriptions as input
+# - Output category probabilities
+# - Be small enough to run efficiently on mobile devices
+# - Provide privacy by running entirely on-device
+
+# For this MVP, the app will use rule-based categorization as a fallback
+# when the model cannot be loaded or fails to provide confident predictions.
