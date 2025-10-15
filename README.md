@@ -43,8 +43,9 @@ It automatically categorizes your financial transactions from SMS messages using
 - **Database:** SQLite for data persistence  
 
 ---
-```
+
 ## 📁 Project Structure
+```
 finsight_app/
 ├── frontend/ # Flutter application
 │ ├── lib/
