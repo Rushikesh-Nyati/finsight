@@ -74,9 +74,9 @@ finsight_app/
 ├── requirements.txt
 ├── test_api.py
 └── README.md
-
----
 ```
+---
+
 ## 🚀 Getting Started
 
 ### 🧰 Prerequisites
