@@ -47,33 +47,44 @@ It automatically categorizes your financial transactions from SMS messages using
 ## 📁 Project Structure
 ```
 finsight_app/
-├── frontend/ # Flutter application
-│ ├── lib/
-│ │ ├── models/ # Data models (Transaction, Category)
-│ │ ├── providers/ # State management (TransactionProvider)
-│ │ ├── screens/ # UI screens
-│ │ │ ├── onboarding_screen.dart
-│ │ │ ├── dashboard_screen.dart
-│ │ │ ├── budget_screen.dart
-│ │ │ ├── forecast_screen.dart
-│ │ │ ├── savings_planner_screen.dart
-│ │ │ └── manual_expense_screen.dart
-│ │ ├── services/ # Business logic
-│ │ │ ├── database_service.dart
-│ │ │ ├── sms_parser_service.dart
-│ │ │ ├── sms_ml_service.dart
-│ │ │ └── api_service.dart
-│ │ └── main.dart
-│ ├── assets/
-│ │ └── sms_categorizer.tflite
-│ ├── pubspec.yaml
-│ └── README.md
+├── backend/                         # Python Flask Backend
+│   ├── app.py                      # Main Flask API with endpoints
+│   ├── requirements.txt            # Python dependencies
+│   ├── test_api.py                 # API testing script
+│   └── README.md                   # Backend documentation
 │
-└── backend/
-├── app.py
-├── requirements.txt
-├── test_api.py
-└── README.md
+└── frontend/                       # Flutter Application
+    ├── lib/
+    │   ├── models/
+    │   │   ├── transaction.dart         # Transaction data model
+    │   │   ├── category.dart            # Category data model
+    │   │   └── api_models.dart          # API response models
+    │   │
+    │   ├── providers/
+    │   │   └── transaction_provider.dart  # State management
+    │   │
+    │   ├── screens/
+    │   │   ├── onboarding_screen.dart      # Onboarding flow
+    │   │   ├── dashboard_screen.dart       # Main dashboard
+    │   │   ├── budget_screen.dart          # Budget planning
+    │   │   ├── forecast_screen.dart        # Spending forecasts
+    │   │   ├── savings_planner_screen.dart # Savings goals
+    │   │   └── manual_expense_screen.dart  # Manual entry
+    │   │
+    │   ├── services/
+    │   │   ├── database_service.dart    # Local SQLite operations
+    │   │   ├── api_service.dart         # Backend API calls
+    │   │   ├── sms_parser_service.dart  # SMS text parsing
+    │   │   └── sms_ml_service.dart      # ML categorization
+    │   │
+    │   └── main.dart                    # App entry point
+    │
+    ├── assets/
+    │   └── sms_categorizer.tflite      # TensorFlow Lite model
+    │
+    ├── pubspec.yaml                    # Flutter dependencies
+    └── README.md                       # Frontend documentation
+
 ```
 ---
 
