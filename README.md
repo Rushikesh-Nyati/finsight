@@ -43,7 +43,7 @@ It automatically categorizes your financial transactions from SMS messages using
 - **Database:** SQLite for data persistence  
 
 ---
-
+```
 ## 📁 Project Structure
 finsight_app/
 ├── frontend/ # Flutter application
@@ -75,7 +75,7 @@ finsight_app/
 └── README.md
 
 ---
-
+```
 ## 🚀 Getting Started
 
 ### 🧰 Prerequisites
@@ -97,30 +97,32 @@ finsight_app/
 
 #### 1. Clone the Repository
 ```bash
-git clone https://github.com/YOUR-USERNAME/finsight.git
+git clone https://github.com/Rushikesh-Nyati/finsight.git
 cd finsight
-
+```
 2. Backend Setup
-
+```bash
 cd finsight_app/backend
 python -m venv venv
-
+```
 # Activate virtual environment
 # On Windows:
-venv\Scripts\activate
+```venv\Scripts\activate```
 # On macOS/Linux:
-source venv/bin/activate
+```source venv/bin/activate```
 
 # Install dependencies
-pip install -r requirements.txt
+```pip install -r requirements.txt```
 
 # Run Flask server
-python app.py
+```python app.py```
 Backend will start on http://localhost:5000
 3. Frontend Setup
+```
 cd finsight_app/frontend
 flutter pub get
 flutter run
+```
 📱 Features in Detail
 1. Onboarding Flow
 
@@ -182,9 +184,9 @@ FinSight ensures complete data privacy:
 Base URL
 http://localhost:5000
 🧪 Testing
-cd finsight_app/backend
+```cd finsight_app/backend
 python test_api.py
-
+```
 
 Runs all API endpoint tests and verifies responses.
 
@@ -212,7 +214,7 @@ Runs all API endpoint tests and verifies responses.
 
 🛠️ Development
 Flutter Dependencies (pubspec.yaml)
-dependencies:
+```dependencies:
   provider: ^6.1.1
   sqflite: ^2.3.0
   http: ^1.1.0
@@ -220,27 +222,27 @@ dependencies:
   permission_handler: ^11.0.1
   telephony: ^0.2.0
   intl: ^0.18.1
-
+```
 Python Dependencies (requirements.txt)
-Flask==2.3.3
+```Flask==2.3.3
 Flask-CORS==4.0.0
 pandas==2.0.3
 numpy==1.24.3
 scikit-learn==1.3.0
 prophet==1.1.4
-
+```
 🤝 Contributing
 
 Fork the repository
 
 Create a new branch
 
-git checkout -b feature/AmazingFeature
+```git checkout -b feature/AmazingFeature```
 
 
 Commit your changes
 
-git commit -m "Add some AmazingFeature"
+```git commit -m "Add some AmazingFeature"```
 
 
 Push and open a Pull Request
