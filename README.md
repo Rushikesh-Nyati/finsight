@@ -105,19 +105,19 @@ finsight_app/
 
 ---
 
-### 🛠️ Installation
+## 🛠️ Installation
 
-#### 1. Clone the Repository
+## 1. Clone the Repository
 ```bash
 git clone https://github.com/Rushikesh-Nyati/finsight.git
 cd finsight
 ```
-2. Backend Setup
+## 2. Backend Setup
 ```bash
 cd finsight_app/backend
 python -m venv venv
 ```
-## Activate virtual environment
+### Activate virtual environment
 ### On Windows:
 ```venv\Scripts\activate```
 ### On macOS/Linux:
@@ -129,7 +129,7 @@ python -m venv venv
 ### Run Flask server
 ```python app.py```
 Backend will start on http://localhost:5000
-3. Frontend Setup
+## 3. Frontend Setup
 ```
 cd finsight_app/frontend
 flutter pub get
