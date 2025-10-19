@@ -7,6 +7,7 @@ class Transaction {
   final String? description;
   final bool isManual;
   final bool isUncategorized;
+  final String? type;
 
   Transaction({
     this.id,
@@ -17,6 +18,7 @@ class Transaction {
     this.description,
     this.isManual = false,
     this.isUncategorized = false,
+    this.type,
   });
 
   Map<String, dynamic> toMap() {
@@ -29,19 +31,21 @@ class Transaction {
       'description': description,
       'isManual': isManual ? 1 : 0,
       'isUncategorized': isUncategorized ? 1 : 0,
+      'type': type,
     };
   }
 
   factory Transaction.fromMap(Map<String, dynamic> map) {
     return Transaction(
-      id: map['id'],
-      merchant: map['merchant'],
-      amount: map['amount'],
-      category: map['category'],
-      date: DateTime.parse(map['date']),
-      description: map['description'],
-      isManual: map['isManual'] == 1,
-      isUncategorized: map['isUncategorized'] == 1,
+      id: map['id'] as int?,
+      merchant: map['merchant'] as String,
+      amount: (map['amount'] as num).toDouble(),
+      category: map['category'] as String,
+      date: DateTime.parse(map['date'] as String),
+      description: map['description'] as String?,
+      isManual: (map['isManual'] as int?) == 1,
+      isUncategorized: (map['isUncategorized'] as int?) == 1,
+      type: map['type'] as String?,
     );
   }
 
@@ -54,6 +58,7 @@ class Transaction {
     String? description,
     bool? isManual,
     bool? isUncategorized,
+    String? type,
   }) {
     return Transaction(
       id: id ?? this.id,
@@ -64,6 +69,12 @@ class Transaction {
       description: description ?? this.description,
       isManual: isManual ?? this.isManual,
       isUncategorized: isUncategorized ?? this.isUncategorized,
+      type: type ?? this.type,
     );
+  }
+
+  @override
+  String toString() {
+    return 'Transaction{id: $id, merchant: $merchant, amount: $amount, category: $category, date: $date, type: $type}';
   }
 }

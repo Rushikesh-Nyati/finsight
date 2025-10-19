@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import '../models/transaction.dart' as models;
@@ -21,22 +23,22 @@ class DatabaseService {
     );
   }
 
-  static Future<void> _onCreate(Database db, int version) async {
+  static Future _onCreate(Database db, int version) async {
     await db.execute('''
-      CREATE TABLE $_tableName(
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        merchant TEXT NOT NULL,
-        amount REAL NOT NULL,
-        category TEXT NOT NULL,
-        date TEXT NOT NULL,
-        description TEXT,
-        isManual INTEGER NOT NULL DEFAULT 0,
-        isUncategorized INTEGER NOT NULL DEFAULT 0
-      )
+    CREATE TABLE $_tableName(
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      merchant TEXT NOT NULL,
+      amount REAL NOT NULL,
+      category TEXT NOT NULL,
+      date TEXT NOT NULL,
+      description TEXT,
+      type TEXT,
+      isManual INTEGER NOT NULL DEFAULT 0,
+      isUncategorized INTEGER NOT NULL DEFAULT 0
+    )
     ''');
   }
 
-  // NEW: Check if transaction already exists (to prevent duplicates)
   static Future<bool> transactionExists(
     String merchant,
     double amount,
@@ -52,11 +54,8 @@ class DatabaseService {
     return result.isNotEmpty;
   }
 
-  // UPDATED: Check for duplicates before inserting
   static Future<int> insertTransaction(models.Transaction transaction) async {
     final db = await database;
-
-    // Check if transaction already exists
     final exists = await transactionExists(
       transaction.merchant,
       transaction.amount,
@@ -66,13 +65,12 @@ class DatabaseService {
     if (exists) {
       print(
           '⚠️ Duplicate transaction detected, skipping: ${transaction.merchant}');
-      return -1; // Return -1 to indicate duplicate
+      return -1;
     }
 
     return await db.insert(_tableName, transaction.toMap());
   }
 
-  // BULK INSERT with duplicate checking
   static Future<int> insertTransactionsBatch(
       List<models.Transaction> transactions) async {
     final db = await database;
@@ -102,6 +100,7 @@ class DatabaseService {
       _tableName,
       orderBy: 'date DESC',
     );
+
     return List.generate(
         maps.length, (i) => models.Transaction.fromMap(maps[i]));
   }
@@ -120,6 +119,7 @@ class DatabaseService {
       ],
       orderBy: 'date DESC',
     );
+
     return List.generate(
         maps.length, (i) => models.Transaction.fromMap(maps[i]));
   }
@@ -133,6 +133,7 @@ class DatabaseService {
       whereArgs: [category],
       orderBy: 'date DESC',
     );
+
     return List.generate(
         maps.length, (i) => models.Transaction.fromMap(maps[i]));
   }
@@ -145,6 +146,7 @@ class DatabaseService {
       whereArgs: [1],
       orderBy: 'date DESC',
     );
+
     return List.generate(
         maps.length, (i) => models.Transaction.fromMap(maps[i]));
   }
@@ -173,6 +175,7 @@ class DatabaseService {
     final db = await database;
     final startDate = DateTime(month.year, month.month, 1);
     final endDate = DateTime(month.year, month.month + 1, 0);
+
     final List<Map<String, dynamic>> maps = await db.query(
       _tableName,
       where: 'date BETWEEN ? AND ?',
@@ -185,7 +188,7 @@ class DatabaseService {
     Map<String, double> spendingByCategory = {};
     for (var map in maps) {
       final category = map['category'] as String;
-      final amount = map['amount'] as double;
+      final amount = (map['amount'] as num).toDouble(); // ✅ FIXED
       spendingByCategory[category] =
           (spendingByCategory[category] ?? 0) + amount;
     }
@@ -195,8 +198,7 @@ class DatabaseService {
 
   static Future<double> getTotalSpendingForMonth(DateTime month) async {
     final spendingByCategory = await getMonthlySpendingByCategory(month);
-    return spendingByCategory.values
-        .fold<double>(0.0, (sum, amount) => sum + amount);
+    return spendingByCategory.values.fold(0.0, (sum, amount) => sum + amount);
   }
 
   static Future<List<Map<String, dynamic>>> getDailySpendingData(
@@ -204,12 +206,13 @@ class DatabaseService {
     final db = await database;
     final endDate = DateTime.now();
     final startDate = endDate.subtract(Duration(days: days));
+
     final List<Map<String, dynamic>> maps = await db.rawQuery('''
-      SELECT DATE(date) as date, SUM(amount) as amount
-      FROM $_tableName
-      WHERE date BETWEEN ? AND ?
-      GROUP BY DATE(date)
-      ORDER BY date ASC
+    SELECT DATE(date) as date, SUM(amount) as amount
+    FROM $_tableName
+    WHERE date BETWEEN ? AND ?
+    GROUP BY DATE(date)
+    ORDER BY date ASC
     ''', [
       startDate.toIso8601String(),
       endDate.toIso8601String(),
@@ -223,6 +226,7 @@ class DatabaseService {
     final db = await database;
     final endDate = DateTime.now();
     final startDate = DateTime(endDate.year, endDate.month - months, 1);
+
     final List<Map<String, dynamic>> maps = await db.query(
       _tableName,
       where: 'date BETWEEN ? AND ?',
@@ -235,7 +239,7 @@ class DatabaseService {
     Map<String, List<double>> categoryAmounts = {};
     for (var map in maps) {
       final category = map['category'] as String;
-      final amount = map['amount'] as double;
+      final amount = (map['amount'] as num).toDouble(); // ✅ FIXED
       categoryAmounts.putIfAbsent(category, () => []).add(amount);
     }
 
@@ -248,7 +252,6 @@ class DatabaseService {
     return averageSpending;
   }
 
-  // NEW: Get latest transaction date (for incremental sync)
   static Future<DateTime?> getLatestTransactionDate() async {
     final db = await database;
     final result = await db.query(
@@ -259,5 +262,17 @@ class DatabaseService {
 
     if (result.isEmpty) return null;
     return DateTime.parse(result.first['date'] as String);
+  }
+}
+
+extension FutureOrDoubleExtensions on FutureOr<double> {
+  FutureOr<double> operator +(double other) {
+    final value = this;
+    if (value is double) {
+      return value + other;
+    }
+    return value.then((v) => v + other);
+    throw UnsupportedError(
+        'Unsupported type for operator + on FutureOr<double>');
   }
 }

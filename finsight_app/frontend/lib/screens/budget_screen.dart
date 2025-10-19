@@ -1,195 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
-import '../providers/transaction_provider.dart';
 import '../services/api_service.dart';
 import '../models/api_models.dart';
-// ------------------------------------------------------------//
-import 'package:flutter/material.dart';
-import '../models/transaction.dart';
-import '../services/database_service.dart';
-import '../services/sms_parser_service.dart';
-import '../services/sms_ml_service.dart';
+import '../providers/transaction_provider.dart';
 
-class TransactionProvider with ChangeNotifier {
-  List<Transaction> _transactions = [];
-  bool _isLoading = false;
-  String? _error;
-  DateTime? _lastSyncDate;
-
-  List<Transaction> get transactions => _transactions;
-  bool get isLoading => _isLoading;
-  String? get error => _error;
-  DateTime? get lastSyncDate => _lastSyncDate;
-
-  Future<void> loadTransactions() async {
-    _setLoading(true);
-    try {
-      _transactions = await DatabaseService.getAllTransactions();
-      _lastSyncDate = await DatabaseService.getLatestTransactionDate();
-      _error = null;
-    } catch (e) {
-      _error = e.toString();
-    }
-    _setLoading(false);
-  }
-
-  Future<void> addTransaction(Transaction transaction) async {
-    try {
-      final id = await DatabaseService.insertTransaction(transaction);
-      if (id != -1) {
-        _transactions.insert(0, transaction.copyWith(id: id));
-        notifyListeners();
-      }
-    } catch (e) {
-      _error = e.toString();
-      notifyListeners();
-    }
-  }
-
-  Future<void> updateTransaction(Transaction transaction) async {
-    try {
-      await DatabaseService.updateTransaction(transaction);
-      final index = _transactions.indexWhere((t) => t.id == transaction.id);
-      if (index != -1) {
-        _transactions[index] = transaction;
-        notifyListeners();
-      }
-    } catch (e) {
-      _error = e.toString();
-      notifyListeners();
-    }
-  }
-
-  Future<void> deleteTransaction(int id) async {
-    try {
-      await DatabaseService.deleteTransaction(id);
-      _transactions.removeWhere((t) => t.id == id);
-      notifyListeners();
-    } catch (e) {
-      _error = e.toString();
-      notifyListeners();
-    }
-  }
-
-  Future<void> syncSMSData() async {
-    _setLoading(true);
-    try {
-      await SMSMLService.initialize();
-      List<Transaction> smsTransactions =
-          await SMSParserService.parseSMSMessages();
-      smsTransactions =
-          await SMSParserService.categorizeTransactions(smsTransactions);
-
-      if (_lastSyncDate != null) {
-        smsTransactions = smsTransactions
-            .where((t) => t.date.isAfter(_lastSyncDate!))
-            .toList();
-        print('📊 Found ${smsTransactions.length} new SMS since last sync');
-      }
-
-      final insertedCount =
-          await DatabaseService.insertTransactionsBatch(smsTransactions);
-      print('✅ Added $insertedCount new transactions');
-
-      await loadTransactions();
-      _error = null;
-    } catch (e) {
-      _error = e.toString();
-    }
-    _setLoading(false);
-  }
-
-  // NEW: Get spending by category for a specific month
-  Map<String, double> getMonthlySpendingByCategory(DateTime month) {
-    final startDate = DateTime(month.year, month.month, 1);
-    final endDate = DateTime(month.year, month.month + 1, 1);
-
-    final Map<String, double> categorySpending = {};
-
-    for (final transaction in _transactions) {
-      if (transaction.date
-              .isAfter(startDate.subtract(const Duration(seconds: 1))) &&
-          transaction.date.isBefore(endDate)) {
-        categorySpending[transaction.category] =
-            (categorySpending[transaction.category] ?? 0) + transaction.amount;
-      }
-    }
-
-    return categorySpending;
-  }
-
-  // NEW: Get total spending for a specific month
-  double getTotalSpendingForMonth(DateTime month) {
-    final spending = getMonthlySpendingByCategory(month);
-    return spending.values.fold<double>(0.0, (sum, amount) => sum + amount);
-  }
-
-  // NEW: Get transactions for a specific month
-  List<Transaction> getTransactionsForMonth(DateTime month) {
-    final startDate = DateTime(month.year, month.month, 1);
-    final endDate = DateTime(month.year, month.month + 1, 1);
-
-    return _transactions
-        .where((t) =>
-            t.date.isAfter(startDate.subtract(const Duration(seconds: 1))) &&
-            t.date.isBefore(endDate))
-        .toList();
-  }
-
-  // NEW: Get daily spending data for forecasting
-  List<Map<String, dynamic>> getDailySpendingData(int days) {
-    final endDate = DateTime.now();
-    final startDate = endDate.subtract(Duration(days: days));
-
-    final Map<String, double> dailySpending = {};
-
-    for (final transaction in _transactions) {
-      if (transaction.date.isAfter(startDate) &&
-          transaction.date.isBefore(endDate.add(const Duration(days: 1)))) {
-        final dateKey =
-            '${transaction.date.year}-${transaction.date.month.toString().padLeft(2, '0')}-${transaction.date.day.toString().padLeft(2, '0')}';
-        dailySpending[dateKey] =
-            (dailySpending[dateKey] ?? 0) + transaction.amount;
-      }
-    }
-
-    return dailySpending.entries
-        .map((e) => {'date': e.key, 'amount': e.value})
-        .toList();
-  }
-
-  // NEW: Get average spending by category over multiple months
-  Map<String, double> getAverageSpendingByCategory(int months) {
-    final now = DateTime.now();
-    final startDate = DateTime(now.year, now.month - months, 1);
-
-    final Map<String, List<double>> categoryAmounts = {};
-
-    for (final transaction in _transactions) {
-      if (transaction.date.isAfter(startDate)) {
-        categoryAmounts
-            .putIfAbsent(transaction.category, () => [])
-            .add(transaction.amount);
-      }
-    }
-
-    final Map<String, double> averageSpending = {};
-    categoryAmounts.forEach((category, amounts) {
-      averageSpending[category] =
-          amounts.reduce((a, b) => a + b) / amounts.length;
-    });
-
-    return averageSpending;
-  }
-
-  void _setLoading(bool value) {
-    _isLoading = value;
-    notifyListeners();
-  }
-}
-
-// ------------------------------------------------------------//
 class BudgetScreen extends StatefulWidget {
   const BudgetScreen({super.key});
 
@@ -225,7 +41,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
       for (int i = 2; i >= 0; i--) {
         final month = DateTime(now.year, now.month - i, 1);
         final spending =
-            transactionProvider.getMonthlySpendingByCategory(month);
+            _getMonthlySpendingByCategory(transactionProvider, month);
 
         spending.forEach((category, amount) {
           monthlySpending.putIfAbsent(category, () => []).add(amount);
@@ -234,16 +50,43 @@ class _BudgetScreenState extends State<BudgetScreen> {
 
       final budgetSuggestion =
           await ApiService.getInitialBudget(monthlySpending);
-      setState(() {
-        _budgetSuggestion = budgetSuggestion;
-        _isLoading = false;
-      });
+
+      if (mounted) {
+        setState(() {
+          _budgetSuggestion = budgetSuggestion;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
-      setState(() {
-        _error = e.toString();
-        _isLoading = false;
-      });
+      if (kDebugMode) {
+        debugPrint('❌ Error loading budget suggestion: $e');
+      }
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+          _isLoading = false;
+        });
+      }
     }
+  }
+
+  Map<String, double> _getMonthlySpendingByCategory(
+      TransactionProvider provider, DateTime month) {
+    final startDate = DateTime(month.year, month.month, 1);
+    final endDate = DateTime(month.year, month.month + 1, 0);
+
+    final transactions =
+        provider.getTransactionsByDateRange(startDate, endDate);
+    final Map<String, double> categorySpending = {};
+
+    for (final transaction in transactions) {
+      if (transaction.type == 'debit') {
+        categorySpending[transaction.category] =
+            (categorySpending[transaction.category] ?? 0) + transaction.amount;
+      }
+    }
+
+    return categorySpending;
   }
 
   @override
@@ -301,7 +144,7 @@ class _BudgetScreenState extends State<BudgetScreen> {
     final transactionProvider =
         Provider.of<TransactionProvider>(context, listen: false);
     final currentSpending =
-        transactionProvider.getMonthlySpendingByCategory(currentMonth);
+        _getMonthlySpendingByCategory(transactionProvider, currentMonth);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),

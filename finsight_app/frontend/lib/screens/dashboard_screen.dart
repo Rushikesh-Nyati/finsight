@@ -36,9 +36,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: () {
-              Provider.of<TransactionProvider>(context, listen: false)
-                  .loadTransactions();
+            tooltip: 'Sync SMS & Refresh',
+            onPressed: () async {
+              // ✅ FIXED: Now syncs SMS messages
+              final provider = Provider.of<TransactionProvider>(context, listen: false);
+              
+              // Show loading indicator
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Syncing SMS transactions...'),
+                  duration: Duration(seconds: 2),
+                ),
+              );
+              
+              await provider.syncSMSTransactions();
+              
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('SMS synced successfully!'),
+                  duration: Duration(seconds: 1),
+                ),
+              );
             },
           ),
         ],
@@ -49,20 +67,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
             return const Center(child: CircularProgressIndicator());
           }
 
-          // Filter transactions for current month only
           final now = DateTime.now();
           final currentMonthStart = DateTime(now.year, now.month, 1);
           final nextMonthStart = DateTime(now.year, now.month + 1, 1);
-
           final currentMonthTransactions = transactionProvider.transactions
               .where((t) =>
                   t.date.isAfter(
                       currentMonthStart.subtract(const Duration(seconds: 1))) &&
                   t.date.isBefore(nextMonthStart))
               .toList();
-
-          final totalSpending =
-              _calculateTotalSpending(currentMonthTransactions);
+          
+          // ✅ FIXED: Calculate debits and credits separately
+          final totals = _calculateTotals(currentMonthTransactions);
           final spendingByCategory =
               _calculateSpendingByCategory(currentMonthTransactions);
 
@@ -71,13 +87,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildSpendingSummaryCard(totalSpending),
+                _buildSpendingSummaryCard(totals),
                 const SizedBox(height: 24),
                 _buildSpendingChart(spendingByCategory),
                 const SizedBox(height: 24),
                 _buildQuickActions(),
                 const SizedBox(height: 24),
-                // CHANGED: Show ALL transactions, not just 5
                 _buildRecentTransactions(currentMonthTransactions),
               ],
             ),
@@ -98,22 +113,44 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  double _calculateTotalSpending(List<Transaction> transactions) {
-    return transactions.fold<double>(
-        0.0, (sum, transaction) => sum + transaction.amount);
+  // ✅ NEW: Calculate debits, credits, and net separately
+  Map<String, double> _calculateTotals(List<Transaction> transactions) {
+    double totalDebits = 0.0;
+    double totalCredits = 0.0;
+
+    for (final transaction in transactions) {
+      if (transaction.type == 'debit') {
+        totalDebits += transaction.amount;
+      } else if (transaction.type == 'credit') {
+        totalCredits += transaction.amount;
+      }
+    }
+
+    return {
+      'debits': totalDebits,
+      'credits': totalCredits,
+      'net': totalDebits - totalCredits,
+    };
   }
 
   Map<String, double> _calculateSpendingByCategory(
       List<Transaction> transactions) {
     final Map<String, double> categorySpending = {};
     for (final transaction in transactions) {
-      categorySpending[transaction.category] =
-          (categorySpending[transaction.category] ?? 0) + transaction.amount;
+      if (transaction.type == 'debit') {
+        categorySpending[transaction.category] =
+            (categorySpending[transaction.category] ?? 0) + transaction.amount;
+      }
     }
     return categorySpending;
   }
 
-  Widget _buildSpendingSummaryCard(double totalSpending) {
+  // ✅ UPDATED: Show debits, credits, and net expense
+  Widget _buildSpendingSummaryCard(Map<String, double> totals) {
+    final debits = totals['debits'] ?? 0.0;
+    final credits = totals['credits'] ?? 0.0;
+    final net = totals['net'] ?? 0.0;
+
     return Card(
       elevation: 4,
       child: Container(
@@ -130,20 +167,90 @@ class _DashboardScreenState extends State<DashboardScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Total Spends this Month',
+              'This Month Summary',
               style: TextStyle(
                 color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
               ),
             ),
+            const SizedBox(height: 16),
+            
+            // Debits Row
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Debits (Spent):',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                  ),
+                ),
+                Text(
+                  '₹${debits.toStringAsFixed(0)}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 8),
+            
+            // Credits Row
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Credits (Received):',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                  ),
+                ),
+                Text(
+                  '₹${credits.toStringAsFixed(0)}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            
+            const Divider(color: Colors.white70, height: 24),
+            
+            // Net Expense
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Net Expense:',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                Text(
+                  '₹${net.toStringAsFixed(0)}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
             Text(
-              '₹${totalSpending.toStringAsFixed(0)}',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
+              'Debits - Credits',
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.8),
+                fontSize: 12,
               ),
             ),
           ],
@@ -253,7 +360,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     final index = entry.key;
                     final categoryData = entry.value;
                     final color = _getCategoryColor(categoryData.key);
-
                     return BarChartGroupData(
                       x: index,
                       barRods: [
@@ -406,7 +512,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // UPDATED: Show ALL transactions with header showing count
   Widget _buildRecentTransactions(List<Transaction> transactions) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -445,14 +550,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // UPDATED: Made clickable with onTap to open edit dialog
   Widget _buildTransactionTile(Transaction transaction) {
     final category = Category.getCategoryByName(transaction.category);
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
-        onTap: () =>
-            _showEditTransactionDialog(transaction), // ADDED: Click to edit
+        onTap: () => _showEditTransactionDialog(transaction),
         leading: CircleAvatar(
           backgroundColor:
               Color(int.parse(category.color.replaceAll('#', '0xFF'))),
@@ -485,11 +588,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Text(
-              '₹${transaction.amount.toStringAsFixed(0)}',
+              '${transaction.type == 'credit' ? '+' : '-'}₹${transaction.amount.toStringAsFixed(0)}',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: transaction.amount > 0 ? Colors.red : Colors.green,
+                color: transaction.type == 'credit' ? Colors.green : Colors.red,
               ),
             ),
             if (transaction.isUncategorized)
@@ -504,7 +607,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // NEW: Dialog to edit transaction
   void _showEditTransactionDialog(Transaction transaction) {
     String selectedCategory = transaction.category;
     TextEditingController noteController =
@@ -522,7 +624,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Amount (read-only)
                     Text(
                       'Amount: ₹${transaction.amount.toStringAsFixed(0)}',
                       style: const TextStyle(
@@ -536,8 +637,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       style: TextStyle(color: Colors.grey[600]),
                     ),
                     const Divider(height: 24),
-
-                    // Category selector
                     const Text(
                       'Category',
                       style: TextStyle(
@@ -569,8 +668,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       }).toList(),
                     ),
                     const SizedBox(height: 16),
-
-                    // Note field
                     TextField(
                       controller: noteController,
                       decoration: const InputDecoration(
@@ -591,7 +688,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
                 ElevatedButton(
                   onPressed: () {
-                    // Update transaction
                     final updatedTransaction = transaction.copyWith(
                       category: selectedCategory,
                       description: noteController.text.trim().isEmpty
@@ -599,12 +695,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           : noteController.text.trim(),
                       isUncategorized: false,
                     );
-
                     Provider.of<TransactionProvider>(context, listen: false)
                         .updateTransaction(updatedTransaction);
-
                     Navigator.pop(context);
-
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Transaction updated!')),
                     );

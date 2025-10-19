@@ -12,7 +12,7 @@ class OnboardingScreen extends StatefulWidget {
 }
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
-  int _currentPage = 0;
+  int currentPage = 0;
   final PageController _pageController = PageController();
 
   @override
@@ -22,7 +22,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         controller: _pageController,
         onPageChanged: (index) {
           setState(() {
-            _currentPage = index;
+            currentPage = index;
           });
         },
         children: [
@@ -237,7 +237,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     final transactionProvider =
         Provider.of<TransactionProvider>(context, listen: false);
     // await transactionProvider.syncSMSTransactions();
-    await transactionProvider.syncSMSData();
+    await transactionProvider.syncSMSTransactions();
 
     if (transactionProvider.error == null && mounted) {
       Navigator.of(context).pushReplacement(

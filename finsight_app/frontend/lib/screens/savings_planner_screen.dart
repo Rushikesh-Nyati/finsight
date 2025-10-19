@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../providers/transaction_provider.dart';
+// import 'package:provider/provider.dart';
+// import '../providers/transaction_provider.dart';
 import '../services/database_service.dart';
 import '../services/api_service.dart';
 import '../models/api_models.dart';
@@ -16,7 +16,7 @@ class _SavingsPlannerScreenState extends State<SavingsPlannerScreen> {
   final _formKey = GlobalKey<FormState>();
   final _goalAmountController = TextEditingController();
   final _timelineController = TextEditingController();
-  
+
   SavingsPlan? _savingsPlan;
   bool _isLoading = false;
   String? _error;
@@ -189,7 +189,9 @@ class _SavingsPlannerScreenState extends State<SavingsPlannerScreen> {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
           gradient: LinearGradient(
-            colors: plan.planPossible ? [Colors.green, Colors.greenAccent] : [Colors.red, Colors.redAccent],
+            colors: plan.planPossible
+                ? [Colors.green, Colors.greenAccent]
+                : [Colors.red, Colors.redAccent],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -206,7 +208,9 @@ class _SavingsPlannerScreenState extends State<SavingsPlannerScreen> {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  plan.planPossible ? 'Plan Achievable!' : 'Plan Not Achievable',
+                  plan.planPossible
+                      ? 'Plan Achievable!'
+                      : 'Plan Not Achievable',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 18,
@@ -323,7 +327,8 @@ class _SavingsPlannerScreenState extends State<SavingsPlannerScreen> {
                       ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
                         color: Colors.red.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(16),
@@ -378,17 +383,18 @@ class _SavingsPlannerScreenState extends State<SavingsPlannerScreen> {
     });
 
     try {
-      final transactionProvider = Provider.of<TransactionProvider>(context, listen: false);
-      
+      // final transactionProvider = Provider.of<TransactionProvider>(context, listen: false);
+
       // Get average spending by category for last 3 months
-      final averageSpending = await DatabaseService.getAverageSpendingByCategory(3);
-      
+      final averageSpending =
+          await DatabaseService.getAverageSpendingByCategory(3);
+
       final savingsPlan = await ApiService.getSavingsPlan(
         goalAmount: double.parse(_goalAmountController.text),
         timelineMonths: int.parse(_timelineController.text),
         averageSpending: averageSpending,
       );
-      
+
       setState(() {
         _savingsPlan = savingsPlan;
         _isLoading = false;
